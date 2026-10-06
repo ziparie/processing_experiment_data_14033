@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Raw and processed data are kept out of the repository (participant data).
+*.xlsx
+*.xls
+*.sav
+*.csv
+data/
+output/
