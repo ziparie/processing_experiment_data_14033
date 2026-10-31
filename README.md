@@ -61,16 +61,17 @@ and not counted.
 Six more sheets follow the three above in the same workbook. They cover
 exactly the respondents in `Data`, so a respondent with no consent and no
 answers to the 9 questions stays out even if they answered the Likert items.
-Settings and calculations are in `likert.py`.
+Column names and group labels are in `config.py`; calculations are in
+`likert.py`.
 
 | Sheet | Content |
 |---|---|
 | `Likert Scores` | One row per participant: `UserId`, cumulative score (6–30), average and stdev of their 6 items |
 | `Likert Items` | One row per item: `Question`, `Reversed`, `N`, average, stdev and median of the scores after reversal |
-| `Likert by Gender` | Column `Q5`: Male, Female, A-binary, Gender code 4 (no label in the answer key) |
+| `Likert by Gender` | Column `Q5` (export column Q): Male, Female, A-binary, Gender code 4 (no label in the answer key) |
 | `Likert by Student` | Column `Q3`: Yes, No |
-| `Likert by Age` | Column `Q4`: 18-25, 26-35, 36-45, 46-50 |
-| `Likert by Degree` | Column `Q6`: ArtHumanities, SocialSciences, NaturalSciences, ExactSciences |
+| `Likert by Age` | Column `Q4` (export column P): 18-25, 26-35, 36-45, 46-50 |
+| `Likert by Degree` | Column `Q6` (export column R): ArtHumanities, SocialSciences, NaturalSciences, ExactSciences |
 
 Each group sheet shows `Group`, `N`, and the average and stdev of the
 participants' cumulative scores and of their average scores.

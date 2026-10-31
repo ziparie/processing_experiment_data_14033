@@ -62,11 +62,10 @@ class GroupVariable:
 
 GROUP_VARIABLES: Final[tuple[GroupVariable, ...]] = (
     GroupVariable(
-        "Q5",
+        config.GENDER_COLUMN,
         "Likert by Gender",
         "Gender",
-        # Code 4 has no label in the answer key.
-        {1: "Male", 2: "Female", 3: "A-binary", 4: "Gender code 4"},
+        config.GENDER_GROUPS,
     ),
     GroupVariable(
         config.STUDENT_COLUMN,
@@ -75,21 +74,16 @@ GROUP_VARIABLES: Final[tuple[GroupVariable, ...]] = (
         {config.STUDENT_CODE: "Yes", config.NOT_STUDENT_CODE: "No"},
     ),
     GroupVariable(
-        "Q4",
+        config.AGE_COLUMN,
         "Likert by Age",
         "Age",
-        {1: "18-25", 2: "26-35", 3: "36-45", 4: "46-50"},
+        config.AGE_GROUPS,
     ),
     GroupVariable(
-        "Q6",
+        config.DEGREE_COLUMN,
         "Likert by Degree",
         "Degree",
-        {
-            1: "ArtHumanities",
-            2: "SocialSciences",
-            3: "NaturalSciences",
-            4: "ExactSciences",
-        },
+        config.DEGREE_GROUPS,
     ),
 )
 UNANSWERED_GROUP: Final[str] = "Unanswered"

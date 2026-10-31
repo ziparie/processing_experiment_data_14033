@@ -13,6 +13,7 @@ from experiment_transform.likert import (
     GROUP_COLUMNS,
     ITEMS_COLUMNS,
     ITEMS_SHEET,
+    GROUP_VARIABLES,
     LIKERT_COLUMNS,
     SCORES_COLUMNS,
     SCORES_SHEET,
@@ -191,6 +192,31 @@ class ItemsTest(unittest.TestCase):
 
 
 class GroupsTest(unittest.TestCase):
+    def test_group_definitions_use_configured_columns_and_labels(self):
+        definitions = {group.column: group for group in GROUP_VARIABLES}
+        expected = {
+            config.GENDER_COLUMN: config.GENDER_GROUPS,
+            config.STUDENT_COLUMN: {
+                config.STUDENT_CODE: "Yes",
+                config.NOT_STUDENT_CODE: "No",
+            },
+            config.AGE_COLUMN: config.AGE_GROUPS,
+            config.DEGREE_COLUMN: config.DEGREE_GROUPS,
+        }
+        self.assertEqual(
+            {column: group.groups for column, group in definitions.items()},
+            expected,
+        )
+        self.assertEqual(
+            tuple(definitions),
+            (
+                config.GENDER_COLUMN,
+                config.STUDENT_COLUMN,
+                config.AGE_COLUMN,
+                config.DEGREE_COLUMN,
+            ),
+        )
+
     def test_every_label_is_listed_in_code_order(self):
         result = calculate(person("R_a", "3", "3", "3", "3", "3", "3"))
         expected = {
