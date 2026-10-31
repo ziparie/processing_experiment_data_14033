@@ -11,6 +11,7 @@ import pandas as pd
 
 from experiment_transform import config
 from experiment_transform.cli import main
+from experiment_transform.likert import GROUP_VARIABLES, LIKERT_COLUMNS
 from experiment_transform.questions import QUESTIONS
 from experiment_transform.transform import (
     InputLayoutError,
@@ -35,6 +36,10 @@ def make_export(respondents: list[dict[str, str]]) -> pd.DataFrame:
     ]
     for question in QUESTIONS:
         columns.extend(question.block_columns)
+    columns.extend(LIKERT_COLUMNS)
+    columns.extend(
+        g.column for g in GROUP_VARIABLES if g.column not in columns
+    )
     frame = pd.DataFrame(
         [{c: None for c in columns} for _ in respondents], columns=columns
     )

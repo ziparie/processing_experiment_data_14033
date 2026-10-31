@@ -56,6 +56,42 @@ respondents written to `Data`:
 Any `Q3` value other than 1, 2, -99 or empty is reported in `Validation`
 and not counted.
 
+## Likert index sheets
+
+Six more sheets follow the three above in the same workbook. They cover
+exactly the respondents in `Data`, so a respondent with no consent and no
+answers to the 9 questions stays out even if they answered the Likert items.
+Column names and group labels are in `config.py`; calculations are in
+`likert.py`.
+
+| Sheet | Content |
+|---|---|
+| `Likert Scores` | One row per participant: `UserId`, cumulative score (6–30), average and stdev of their 6 items |
+| `Likert Items` | One row per item: `Question`, `Reversed`, `N`, average, stdev and median of the scores after reversal |
+| `Likert by Gender` | Column `Q5` (export column Q): Male, Female, A-binary, Gender code 4 (no label in the answer key) |
+| `Likert by Student` | Column `Q3`: Yes, No |
+| `Likert by Age` | Column `Q4` (export column P): 18-25, 26-35, 36-45, 46-50 |
+| `Likert by Degree` | Column `Q6` (export column R): ArtHumanities, SocialSciences, NaturalSciences, ExactSciences |
+
+Each group sheet shows `Group`, `N`, and the average and stdev of the
+participants' cumulative scores and of their average scores.
+
+- **Items.** `Q47, Q52, Q51, Q50, Q49, Q48`, scale 1–5. `Q50` and `Q51` are
+  reverse-scored (score = 6 - answer).
+- **Missing values.** Anything other than an integer 1–5 is missing. A
+  non-empty value other than -99 is also reported in `Validation`.
+- **Partial answers.** A participant with some items missing has empty
+  cumulative, average and stdev, is reported in `Validation` and is left out
+  of the group sheets. Their valid answers still count in `Likert Items`.
+  A participant with no Likert answers has an empty row and is not reported.
+- **Groups.** Every labelled group is always listed, in code order; with
+  N = 0 its statistics are empty. An `Unanswered` row appears only if someone
+  in `Data` has an empty or -99 value in that column. An unexpected code gets
+  its own row (e.g. `Degree code 9`) and is reported in `Validation`.
+- **Statistics.** Sample stdev (n-1); one value gives an empty stdev. Six
+  identical scores give a stdev of 0.
+- **Duplicates.** A duplicate `ResponseId` keeps both rows, as in `Data`.
+
 ## Usage
 
 ```bash
@@ -77,9 +113,12 @@ src/experiment_transform/
 ├── config.py       # all coding rules and settings
 ├── questions.py    # the 9 questions: column codes + correct answers
 ├── transform.py    # loading, layout checks, coding, Excel output
+├── likert.py       # Likert settings and calculations
+├── likert_output.py # writes the Likert sheets
 └── cli.py          # command-line entry point
 tests/
-└── test_transform.py
+├── test_transform.py
+└── test_likert.py
 ```
 
 Before coding anything, the program checks that every expected column
