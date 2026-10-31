@@ -32,6 +32,31 @@ STUDENT_COLUMN: Final[str] = "Q3"
 STUDENT_CODE: Final[int] = 1
 NOT_STUDENT_CODE: Final[int] = 2
 
+# Demographic columns used by the Likert group sheets. These are Qualtrics
+# variable names; their expected positions in the export are shown here.
+AGE_COLUMN: Final[str] = "Q4"  # Column P.
+GENDER_COLUMN: Final[str] = "Q5"  # Column Q.
+DEGREE_COLUMN: Final[str] = "Q6"  # Column R.
+
+AGE_GROUPS: Final[dict[int, str]] = {
+    1: "18-25",
+    2: "26-35",
+    3: "36-45",
+    4: "46-50",
+}
+GENDER_GROUPS: Final[dict[int, str]] = {
+    1: "Male",
+    2: "Female",
+    3: "A-binary",
+    4: "Gender code 4",
+}
+DEGREE_GROUPS: Final[dict[int, str]] = {
+    1: "ArtHumanities",
+    2: "SocialSciences",
+    3: "NaturalSciences",
+    4: "ExactSciences",
+}
+
 # Qualtrics code for an item that was shown but not answered.
 UNANSWERED_CODE: Final[int] = -99
 
