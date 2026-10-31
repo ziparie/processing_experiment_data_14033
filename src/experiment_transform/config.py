@@ -12,8 +12,25 @@ from typing import Final
 QUESTION_TEXT_ROW: Final[int] = 1
 
 ID_COLUMN: Final[str] = "ResponseId"  # Column H in the raw export.
+
+# Only rows from this distribution channel are kept. The comparison ignores
+# case and surrounding whitespace. Preview rows are counted separately; any
+# other value, including an empty cell, is reported in the validation sheet.
+CHANNEL_COLUMN: Final[str] = "DistributionChannel"  # Column I.
+INCLUDED_CHANNEL: Final[str] = "anonymous"
+PREVIEW_CHANNEL: Final[str] = "preview"
+
+# Any other value in the consent column (2, -99, empty) means no consent.
+# Such a respondent is still processed if at least one question was answered,
+# and is skipped otherwise.
 CONSENT_COLUMN: Final[str] = "Q1"
-NO_CONSENT_CODE: Final[int] = 2  # Respondents with this code are skipped.
+CONSENT_CODE: Final[int] = 1
+
+# "Are you a student?" -99 or an empty cell means unanswered. Any other code
+# is reported in the validation sheet and not counted.
+STUDENT_COLUMN: Final[str] = "Q3"
+STUDENT_CODE: Final[int] = 1
+NOT_STUDENT_CODE: Final[int] = 2
 
 # Qualtrics code for an item that was shown but not answered.
 UNANSWERED_CODE: Final[int] = -99

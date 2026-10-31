@@ -32,12 +32,32 @@ class TransformResult:
     data: pd.DataFrame
     issues: list[Issue] = field(default_factory=list)
     respondents_read: int = 0
+    excluded_preview: int = 0
+    excluded_other_channel: int = 0
     respondents_skipped_no_consent: list[str] = field(default_factory=list)
+    respondents_without_consent: list[str] = field(default_factory=list)
+    answered_all_ids: set[str] = field(default_factory=set)
+    student_ids: set[str] = field(default_factory=set)
+    student_unanswered_ids: set[str] = field(default_factory=set)
+
+    @property
+    def respondents_anonymous(self) -> int:
+        """Number of input rows that passed the channel filter."""
+        return (
+            self.respondents_read
+            - self.excluded_preview
+            - self.excluded_other_channel
+        )
 
     @property
     def respondents_written(self) -> int:
         """Number of respondents that appear in the output."""
         return self.data["UserId"].nunique()
+
+    @property
+    def students_answered_all(self) -> int:
+        """Number of students who answered all questions."""
+        return len(self.student_ids & self.answered_all_ids)
 
 
 # --- Loading and layout checks -------------------------------------------
@@ -65,7 +85,12 @@ def check_layout(raw: pd.DataFrame) -> None:
     """
     columns = list(raw.columns)
     problems = []
-    for name in (config.ID_COLUMN, config.CONSENT_COLUMN):
+    for name in (
+        config.ID_COLUMN,
+        config.CHANNEL_COLUMN,
+        config.CONSENT_COLUMN,
+        config.STUDENT_COLUMN,
+    ):
         if name not in columns:
             problems.append(f"Missing column '{name}'.")
 
@@ -111,6 +136,82 @@ def parse_number(value: object) -> float | None:
 
 def _is_unanswered(number: float | None) -> bool:
     return number is not None and number == config.UNANSWERED_CODE
+
+
+def _has_value(raw_value: object) -> bool:
+    """Return True for a numeric value other than the unanswered code."""
+    number = parse_number(raw_value)
+    return (
+        number is not None
+        and math.isfinite(number)
+        and not _is_unanswered(number)
+    )
+
+
+# --- Respondent-level rules ------------------------------------------------
+
+
+def _excluded_by_channel(row: pd.Series, result: TransformResult) -> bool:
+    """Return True and count the row if it is not from the kept channel."""
+    raw = row[config.CHANNEL_COLUMN]
+    channel = "" if _is_empty(raw) else str(raw).strip().casefold()
+    if channel == config.INCLUDED_CHANNEL:
+        return False
+    if channel == config.PREVIEW_CHANNEL:
+        result.excluded_preview += 1
+        return True
+
+    result.excluded_other_channel += 1
+    user_id = row[config.ID_COLUMN]
+    result.issues.append(
+        Issue(
+            "" if _is_empty(user_id) else str(user_id).strip(),
+            None,
+            config.CHANNEL_COLUMN,
+            raw,
+            "Unexpected or empty distribution channel; row excluded.",
+        )
+    )
+    return True
+
+
+def _has_any_answer(row: pd.Series) -> bool:
+    """Return True if any question has an answer; confidence is ignored."""
+    return any(_has_value(row[q.answer_column]) for q in QUESTIONS)
+
+
+def _answered_all(row: pd.Series) -> bool:
+    """Return True if every question has an answer and a confidence."""
+    return all(
+        _has_value(row[q.answer_column])
+        and _has_value(row[q.confidence_column])
+        for q in QUESTIONS
+    )
+
+
+def _record_counts(
+    user_id: str, row: pd.Series, result: TransformResult
+) -> None:
+    """Update the end-of-run counts for a respondent written to the output."""
+    if _answered_all(row):
+        result.answered_all_ids.add(user_id)
+
+    raw = row[config.STUDENT_COLUMN]
+    number = parse_number(raw)
+    if _is_empty(raw) or _is_unanswered(number):
+        result.student_unanswered_ids.add(user_id)
+    elif number == config.STUDENT_CODE:
+        result.student_ids.add(user_id)
+    elif number != config.NOT_STUDENT_CODE:
+        result.issues.append(
+            Issue(
+                user_id,
+                None,
+                config.STUDENT_COLUMN,
+                raw,
+                "Unexpected student code; not counted.",
+            )
+        )
 
 
 # --- Coding of the four output variables -----------------------------------
@@ -214,6 +315,9 @@ def transform(raw: pd.DataFrame) -> TransformResult:
     seen_ids: set[str] = set()
     rows: list[dict[str, object]] = []
     for _, row in raw.iterrows():
+        if _excluded_by_channel(row, result):
+            continue
+
         user_id = row[config.ID_COLUMN]
         if _is_empty(user_id):
             result.issues.append(
@@ -228,9 +332,11 @@ def transform(raw: pd.DataFrame) -> TransformResult:
             continue
         user_id = str(user_id).strip()
 
-        if parse_number(row[config.CONSENT_COLUMN]) == config.NO_CONSENT_CODE:
-            result.respondents_skipped_no_consent.append(user_id)
-            continue
+        if parse_number(row[config.CONSENT_COLUMN]) != config.CONSENT_CODE:
+            if not _has_any_answer(row):
+                result.respondents_skipped_no_consent.append(user_id)
+                continue
+            result.respondents_without_consent.append(user_id)
 
         if user_id in seen_ids:
             result.issues.append(
@@ -244,6 +350,7 @@ def transform(raw: pd.DataFrame) -> TransformResult:
             )
         seen_ids.add(user_id)
 
+        _record_counts(user_id, row, result)
         for question in QUESTIONS:
             rows.append(_code_question(user_id, row, question, result.issues))
 
@@ -260,11 +367,20 @@ def transform(raw: pd.DataFrame) -> TransformResult:
 
 def _summary_table(result: TransformResult) -> pd.DataFrame:
     skipped = result.respondents_skipped_no_consent
+    without_consent = result.respondents_without_consent
     lines = [
         ("Respondents in input", result.respondents_read),
-        ("Skipped: no consent (Q1 = 2)", len(skipped)),
+        ("Excluded: preview", result.excluded_preview),
+        ("Excluded: other channel", result.excluded_other_channel),
+        ("Skipped: no consent and no answers", len(skipped)),
         ("Skipped IDs", ", ".join(skipped)),
+        ("Processed without consent (has answers)", len(without_consent)),
+        ("Processed without consent IDs", ", ".join(without_consent)),
         ("Respondents in output", result.respondents_written),
+        ("Answered all questions", len(result.answered_all_ids)),
+        ("Students (of respondents written)", len(result.student_ids)),
+        ("Students (of answered all)", result.students_answered_all),
+        ("Student question unanswered", len(result.student_unanswered_ids)),
         ("Rows in output", len(result.data)),
         ("Issues reported", len(result.issues)),
         ("Timing measure used", config.TIMING_MEASURE),

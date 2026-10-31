@@ -10,6 +10,7 @@ from pathlib import Path
 
 from experiment_transform.transform import (
     InputLayoutError,
+    TransformResult,
     load_export,
     transform,
     write_excel,
@@ -37,6 +38,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def print_report(result: TransformResult, output: Path) -> None:
+    """Print the end-of-run counts with aligned labels."""
+    lines = [
+        ("Respondents read:", result.respondents_read),
+        ("Excluded (preview):", result.excluded_preview),
+        ("Excluded (other channel):", result.excluded_other_channel),
+        ("Skipped (no consent):", len(result.respondents_skipped_no_consent)),
+        (
+            "Processed without consent:",
+            len(result.respondents_without_consent),
+        ),
+        ("Respondents written:", result.respondents_written),
+        ("Answered all questions:", len(result.answered_all_ids)),
+        ("Students (of respondents written):", len(result.student_ids)),
+        ("Students (of answered all):", result.students_answered_all),
+        ("Student question unanswered:", len(result.student_unanswered_ids)),
+        ("Rows written:", len(result.data)),
+        ("Issues reported:", len(result.issues)),
+        ("Output:", output),
+    ]
+    width = max(len(label) for label, _ in lines)
+    for label, value in lines:
+        print(f"{label:<{width}} {value}")
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the transformation and print a short report."""
     args = parse_args(argv)
@@ -52,15 +78,21 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    if result.respondents_written == 0:
+        print(
+            "No respondents to write; no output file was created.\n"
+            f"Rows read: {result.respondents_read} "
+            f"(anonymous: {result.respondents_anonymous}, "
+            f"preview: {result.excluded_preview}, "
+            f"other channel: {result.excluded_other_channel}).\n"
+            "Skipped (no consent): "
+            f"{len(result.respondents_skipped_no_consent)}.",
+            file=sys.stderr,
+        )
+        return 1
+
     write_excel(result, output)
-    print(f"Respondents read:     {result.respondents_read}")
-    print(
-        f"Skipped (no consent): {len(result.respondents_skipped_no_consent)}"
-    )
-    print(f"Respondents written:  {result.respondents_written}")
-    print(f"Rows written:         {len(result.data)}")
-    print(f"Issues reported:      {len(result.issues)}")
-    print(f"Output:               {output}")
+    print_report(result, output)
     return 0
 
 

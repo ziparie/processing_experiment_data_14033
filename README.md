@@ -11,7 +11,7 @@ One Excel workbook with three sheets:
 | Sheet | Content |
 |---|---|
 | `Data` | One row per respondent per question (9 rows per respondent) |
-| `Summary` | Counts, skipped respondents, coding settings used |
+| `Summary` | Counts, skipped and non-consenting respondents, coding settings used |
 | `Validation` | Every value that could not be coded or looks suspicious |
 
 ### `Data` columns
@@ -25,8 +25,36 @@ One Excel workbook with three sheets:
 | `Confidence` | Confidence rating 0–100 | copied; empty = unanswered (-99) |
 | `Familiar` | "I know this question" | 2 or -99 → 0; 3 or empty → 1 |
 
-Respondents with `Q1 = 2` (no consent) are skipped and listed in
-`Summary`.
+### Which respondents are written
+
+1. **Channel filter.** Only rows with `DistributionChannel` (column I) equal
+   to `anonymous` are kept, ignoring case and surrounding whitespace.
+   `preview` rows are counted as excluded. Any other value, including an
+   empty cell, is excluded, counted as "other channel" and reported in
+   `Validation`.
+2. **Consent rule.** `Q1 = 1` means consent; anything else (2, -99 or empty)
+   means no consent. A non-consenting respondent with at least one answer
+   (a numeric value other than -99 in one of the 9 answer columns) is
+   still processed and appears in `Data`. Confidence ratings alone do not
+   count as an answer. A non-consenting respondent with no answers is
+   skipped. `Summary` lists the count and IDs of both groups.
+
+If no respondents remain, the program prints the channel counts to stderr,
+exits with code 1 and writes no file.
+
+### End-of-run counts
+
+The console and `Summary` show the counts below, calculated over the
+respondents written to `Data`:
+
+| Count | Meaning |
+|---|---|
+| Answered all questions | For all 9 questions, the answer and the confidence are numeric and not -99. A valid 0 counts. Familiarity, demographics, the thinking-style items and `Finished` do not count |
+| Students | `Q3 = 1`, among all respondents written and among those who answered all questions |
+| Student question unanswered | `Q3` is -99 or empty |
+
+Any `Q3` value other than 1, 2, -99 or empty is reported in `Validation`
+and not counted.
 
 ## Usage
 
