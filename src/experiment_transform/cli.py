@@ -8,6 +8,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from experiment_transform import resolution_calibration
 from experiment_transform.transform import (
     InputLayoutError,
     TransformResult,
@@ -92,6 +93,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     write_excel(result, output)
+    resolution_calibration.append_sheet(
+        resolution_calibration.calculate(result.data), output
+    )
     print_report(result, output)
     return 0
 

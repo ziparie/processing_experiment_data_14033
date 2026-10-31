@@ -6,13 +6,14 @@ files. The first output is a long-format table for computing
 
 ## What it produces
 
-One Excel workbook with three sheets:
+One Excel workbook with four sheets:
 
 | Sheet | Content |
 |---|---|
 | `Data` | One row per respondent per question (9 rows per respondent) |
 | `Summary` | Counts, skipped and non-consenting respondents, coding settings used |
 | `Validation` | Every value that could not be coded or looks suspicious |
+| `Resolution Calibration` | Calibration and resolution for each person |
 
 ### `Data` columns
 
@@ -56,6 +57,26 @@ respondents written to `Data`:
 Any `Q3` value other than 1, 2, -99 or empty is reported in `Validation`
 and not counted.
 
+### `Resolution Calibration` columns
+
+Each person's values use only the questions in `Data` that have both a
+`Score` and a `Confidence`. All such questions count, whatever their
+`Familiar` value.
+
+| Column | Meaning |
+|---|---|
+| `Questions Used` | Number of questions with both values |
+| `Average Score`, `Average Confidence` | Averages over those questions, both on a 0–100 scale |
+| `Calibration` | Absolute difference between the two averages |
+| `Calibration Direction` | `Overconfidence` if average confidence is higher, `Underconfidence` if lower, `None` if equal |
+| `Concordant Pairs`, `Discordant Pairs` | Question pairs ordered the same way (C) or opposite ways (D) on score and confidence; ties are dropped |
+| `Gamma` | Resolution: Goodman-Kruskal gamma, (C − D) / (C + D) |
+| `Gamma Note` | Why `Gamma` is empty, which happens when all scores or all confidence ratings are equal |
+
+`Gamma` matches `CROSSTABS /TABLES=success BY JOL BY student
+/STATISTICS=GAMMA` in SPSS, with `Score` as `success`, `Confidence` as `JOL`
+and `UserId` as `student`.
+
 ## Usage
 
 ```bash
@@ -77,8 +98,10 @@ src/experiment_transform/
 ├── config.py       # all coding rules and settings
 ├── questions.py    # the 9 questions: column codes + correct answers
 ├── transform.py    # loading, layout checks, coding, Excel output
+├── resolution_calibration.py    # per-person calibration and gamma
 └── cli.py          # command-line entry point
 tests/
+├── test_resolution_calibration.py
 └── test_transform.py
 ```
 
