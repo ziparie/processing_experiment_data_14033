@@ -433,7 +433,7 @@ class CliTest(unittest.TestCase):
                 config.VALIDATION_SHEET,
             ],
         )
-        self.assertEqual(len(sheets), 9)
+        self.assertEqual(len(sheets), 13)
         self.assertEqual(
             sorted(sheets[config.VALIDATION_SHEET]["variable"]),
             ["Likert", "Q47", "Q6"],

@@ -120,6 +120,31 @@ class MissingValuesTest(unittest.TestCase):
         self.assertEqual(table["Gamma"].tolist(), [1, -1])
 
 
+class UnknownQuestionsTest(unittest.TestCase):
+    def test_only_unknown_questions_are_used(self) -> None:
+        data = person("R_a", [100, 0, 0, 100], [90, 10, 80, 20])
+        data["Familiar"] = [1, 1, 0, 0]
+        row = rc.calculate_unknown(data).iloc[0]
+        self.assertEqual(row[rc.UNKNOWN_COUNT], 2)
+        self.assertEqual(row["Average Score"], 50)
+        self.assertEqual(row["Average Confidence"], 50)
+        self.assertEqual(row["Gamma"], -1)
+
+    def test_unknown_question_missing_a_value_is_not_counted(self) -> None:
+        data = person("R_a", [100, None], [90, 10])
+        data["Familiar"] = [0, 0]
+        row = rc.calculate_unknown(data).iloc[0]
+        self.assertEqual(row[rc.UNKNOWN_COUNT], 1)
+
+    def test_person_without_unknown_questions_keeps_an_empty_row(self) -> None:
+        data = person("R_a", [100, 0], [90, 10])
+        data["Familiar"] = [1, 1]
+        row = rc.calculate_unknown(data).iloc[0]
+        self.assertEqual(row[rc.UNKNOWN_COUNT], 0)
+        self.assertTrue(pd.isna(row["Calibration"]))
+        self.assertEqual(row["Gamma Note"], rc.NO_UNKNOWN_NOTE)
+
+
 class CliTest(unittest.TestCase):
     def test_sheet_is_added_to_the_workbook(self) -> None:
         export = make_export([respondent("R_a", answers=9, confidences=9)])

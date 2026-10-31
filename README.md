@@ -6,7 +6,7 @@ files. The first output is a long-format table for computing
 
 ## What it produces
 
-One Excel workbook with four sheets:
+One Excel workbook with these sheets, followed by the Likert sheets:
 
 | Sheet | Content |
 |---|---|
@@ -14,6 +14,9 @@ One Excel workbook with four sheets:
 | `Summary` | Counts, skipped and non-consenting respondents, coding settings used |
 | `Validation` | Every value that could not be coded or looks suspicious |
 | `Resolution Calibration` | Calibration and resolution for each person |
+| `calibration-resolution-unknown` | The same, using only the questions the person did not know |
+| `Correct vs Incorrect` | Each person's time and confidence for correct and incorrect answers |
+| `Known vs Unknown` | Each person's time, confidence and score for known and unknown questions |
 
 ### `Data` columns
 
@@ -77,9 +80,34 @@ Each person's values use only the questions in `Data` that have both a
 /STATISTICS=GAMMA` in SPSS, with `Score` as `success`, `Confidence` as `JOL`
 and `UserId` as `student`.
 
+### `calibration-resolution-unknown` columns
+
+The same columns and calculations as `Resolution Calibration`, using only
+questions with `Familiar` = 0. `Questions Used` is named
+`Unknown Answers Used`. A person with no such questions keeps a row with a
+count of 0, empty values and a `Gamma Note`.
+
+### `Correct vs Incorrect` and `Known vs Unknown` columns
+
+Both sheets have one row per person and use only questions with both a
+`Score` and a `Confidence`. Correct means `Score` = 100 and incorrect means
+`Score` = 0; known means `Familiar` = 1 and unknown means `Familiar` = 0. A
+question with an unexpected `Familiar` code is in neither group.
+
+| Column | Meaning |
+|---|---|
+| `Only Score`, `Only Confidence` | Questions left out because they have only that value, out of all the person's questions |
+| `<Group> N` | Questions in the group, where the groups are `Correct`/`Incorrect` or `Known`/`Unknown` |
+| `<Group> Avg Time`, `<Group> Stdev Time` | From `Timing`, ignoring an empty `Timing` |
+| `<Group> Avg Confidence`, `<Group> Stdev Confidence` | From `Confidence` |
+| `<Group> Avg Score`, `<Group> Stdev Score` | From `Score`, in `Known vs Unknown` only |
+
+Stdev is the sample stdev (n-1): one question gives an empty stdev, and an
+empty group gives empty values.
+
 ## Likert index sheets
 
-Six more sheets follow the three above in the same workbook. They cover
+Six more sheets follow the sheets above in the same workbook. They cover
 exactly the respondents in `Data`, so a respondent with no consent and no
 answers to the 9 questions stays out even if they answered the Likert items.
 Column names and group labels are in `config.py`; calculations are in
@@ -135,11 +163,13 @@ src/experiment_transform/
 ├── questions.py    # the 9 questions: column codes + correct answers
 ├── transform.py    # loading, layout checks, coding, Excel output
 ├── resolution_calibration.py    # per-person calibration and gamma
+├── performance_measures.py    # correct/incorrect and known/unknown sheets
 ├── likert.py       # Likert settings and calculations
 ├── likert_output.py # writes the Likert sheets
 └── cli.py          # command-line entry point
 tests/
 ├── test_resolution_calibration.py
+├── test_performance_measures.py
 ├── test_transform.py
 └── test_likert.py
 ```

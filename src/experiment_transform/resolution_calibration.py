@@ -12,6 +12,9 @@ case that is missing either variable:
       /COUNT ROUND CELL.
 
 Here success is Score, JOL is Confidence and student is UserId.
+
+The same values are also calculated over only the questions a person did not
+know, for a separate sheet.
 """
 
 import math
@@ -25,6 +28,8 @@ import pandas as pd
 from experiment_transform import config
 
 SHEET: Final[str] = "Resolution Calibration"
+UNKNOWN_SHEET: Final[str] = "calibration-resolution-unknown"
+UNKNOWN_COUNT: Final[str] = "Unknown Answers Used"
 COLUMNS: Final[tuple[str, ...]] = (
     "UserId",
     "Questions Used",
@@ -43,6 +48,9 @@ UNDERCONFIDENCE: Final[str] = "Underconfidence"
 NO_DIFFERENCE: Final[str] = "None"
 
 NO_QUESTIONS_NOTE: Final[str] = "No question has both a score and a confidence"
+NO_UNKNOWN_NOTE: Final[str] = (
+    "No unknown question has both a score and a confidence"
+)
 EQUAL_SCORES_NOTE: Final[str] = "All scores are equal"
 EQUAL_CONFIDENCE_NOTE: Final[str] = "All confidence ratings are equal"
 
@@ -96,13 +104,15 @@ def _gamma_note(scores: pd.Series, confidences: pd.Series) -> str | None:
     return "; ".join(notes) or None
 
 
-def _person_row(user_id: str, rows: pd.DataFrame) -> dict[str, object]:
+def _person_row(
+    user_id: str, rows: pd.DataFrame, no_questions_note: str
+) -> dict[str, object]:
     paired = rows.dropna(subset=["Score", "Confidence"])
     if paired.empty:
         return {
             "UserId": user_id,
             "Questions Used": 0,
-            "Gamma Note": NO_QUESTIONS_NOTE,
+            "Gamma Note": no_questions_note,
         }
 
     scores = paired["Score"]
@@ -134,13 +144,30 @@ def _person_row(user_id: str, rows: pd.DataFrame) -> dict[str, object]:
 def calculate(data: pd.DataFrame) -> pd.DataFrame:
     """Return one row per UserId, in the order people appear in the data."""
     rows = [
-        _person_row(user_id, person_rows)
+        _person_row(user_id, person_rows, NO_QUESTIONS_NOTE)
         for user_id, person_rows in data.groupby("UserId", sort=False)
     ]
     return pd.DataFrame(rows, columns=COLUMNS)
 
 
-def append_sheet(table: pd.DataFrame, path: Path) -> None:
-    """Add the per-person sheet to a workbook that already exists."""
+def calculate_unknown(data: pd.DataFrame) -> pd.DataFrame:
+    """Return one row per UserId, using only the questions they did not know.
+
+    A person with no such questions keeps a row with a count of 0.
+    """
+    rows = [
+        _person_row(
+            user_id,
+            person_rows[person_rows["Familiar"] == config.UNKNOWN],
+            NO_UNKNOWN_NOTE,
+        )
+        for user_id, person_rows in data.groupby("UserId", sort=False)
+    ]
+    table = pd.DataFrame(rows, columns=COLUMNS)
+    return table.rename(columns={"Questions Used": UNKNOWN_COUNT})
+
+
+def append_sheet(table: pd.DataFrame, path: Path, sheet: str = SHEET) -> None:
+    """Add a per-person sheet to a workbook that already exists."""
     with pd.ExcelWriter(path, engine="openpyxl", mode="a") as writer:
-        table.to_excel(writer, sheet_name=SHEET, index=False)
+        table.to_excel(writer, sheet_name=sheet, index=False)

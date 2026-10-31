@@ -8,7 +8,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from experiment_transform import resolution_calibration
+from experiment_transform import performance_measures, resolution_calibration
 from experiment_transform.likert import LikertResult, calculate_likert
 from experiment_transform.likert_output import append_likert_sheets
 from experiment_transform.transform import (
@@ -113,6 +113,12 @@ def main(argv: list[str] | None = None) -> int:
     resolution_calibration.append_sheet(
         resolution_calibration.calculate(result.data), output
     )
+    resolution_calibration.append_sheet(
+        resolution_calibration.calculate_unknown(result.data),
+        output,
+        resolution_calibration.UNKNOWN_SHEET,
+    )
+    performance_measures.append_sheets(result.data, output)
     append_likert_sheets(likert, output)
     print_report(result, output)
     print_likert_report(likert)

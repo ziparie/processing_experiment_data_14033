@@ -84,12 +84,14 @@ CONFIDENCE_MAX: Final[float] = 100.0
 # "I know this question": raw code -> coded value. An empty cell is coded
 # as familiar (see FAMILIAR_IF_EMPTY). Any other code is reported in the
 # validation sheet and left missing.
+KNOWN: Final[int] = 1
+UNKNOWN: Final[int] = 0
 FAMILIAR_CODING: Final[dict[int, int]] = {
-    2: 0,
-    UNANSWERED_CODE: 0,
-    3: 1,
+    2: UNKNOWN,
+    UNANSWERED_CODE: UNKNOWN,
+    3: KNOWN,
 }
-FAMILIAR_IF_EMPTY: Final[int] = 1
+FAMILIAR_IF_EMPTY: Final[int] = KNOWN
 
 # --- Output --------------------------------------------------------------
 OUTPUT_COLUMNS: Final[tuple[str, ...]] = (
