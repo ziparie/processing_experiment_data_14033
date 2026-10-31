@@ -8,6 +8,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from experiment_transform.likert import LikertResult, calculate_likert
+from experiment_transform.likert_output import append_likert_sheets
 from experiment_transform.transform import (
     InputLayoutError,
     TransformResult,
@@ -63,6 +65,18 @@ def print_report(result: TransformResult, output: Path) -> None:
         print(f"{label:<{width}} {value}")
 
 
+def print_likert_report(likert: LikertResult) -> None:
+    """Print a short summary of the Likert sheets."""
+    lines = [
+        ("Likert participants:", likert.participants),
+        ("Likert complete:", likert.complete),
+        ("Likert partial:", likert.partial),
+    ]
+    width = max(len(label) for label, _ in lines)
+    for label, value in lines:
+        print(f"{label:<{width}} {value}")
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the transformation and print a short report."""
     args = parse_args(argv)
@@ -71,7 +85,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        result = transform(load_export(args.input))
+        raw = load_export(args.input)
+        result = transform(raw)
+        likert = calculate_likert(raw)
     except InputLayoutError as error:
         print(
             f"Input file has an unexpected layout:\n{error}", file=sys.stderr
@@ -91,8 +107,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    result.issues.extend(likert.issues)
     write_excel(result, output)
+    append_likert_sheets(likert, output)
     print_report(result, output)
+    print_likert_report(likert)
     return 0
 
 
